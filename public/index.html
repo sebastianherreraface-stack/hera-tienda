@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hera - Accesorios</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <h1>HERA</h1>
+  <button id="cart-btn">🛒 Carrito (<span id="cart-count">0</span>)</button>
+</header>
+
+<main>
+  <div id="grid" class="grid"></div>
+</main>
+
+<footer>Hera © 2026</footer>
+
+<!-- ---------- Carrito ---------- -->
+<div id="cart-overlay">
+  <div id="cart-panel">
+    <h2>Tu carrito</h2>
+    <div id="cart-items"></div>
+    <div class="cart-footer">
+      <label>Nombre</label>
+      <input type="text" id="buyer-name" placeholder="Tu nombre">
+      <label>Email</label>
+      <input type="email" id="buyer-email" placeholder="tu@email.com">
+      <label>Dirección de envío</label>
+      <input type="text" id="buyer-address" placeholder="Calle, número, ciudad">
+      <label>Provincia / zona de envío</label>
+      <select id="shipping-zone"></select>
+
+      <div class="total-line"><span>Subtotal</span><span id="subtotal">$0</span></div>
+      <div class="total-line"><span>Envío</span><span id="shipping-cost">$0</span></div>
+      <div class="total-line grande"><span>Total</span><span id="total">$0</span></div>
+
+      <button id="checkout-btn">Pagar con Mercado Pago</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/store.js"></script>
+</body>
+</html>

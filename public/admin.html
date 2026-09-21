@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hera - Panel de administración</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .admin-wrap { max-width: 900px; margin: 0 auto; padding: 40px 5%; }
+  .box { background: var(--gris); border: 1px solid var(--gris-borde); border-radius: 12px; padding: 24px; margin-bottom: 30px; }
+  .box h2 { font-family: Georgia, serif; color: var(--dorado); margin-bottom: 18px; }
+  .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .form-row > div { flex: 1; min-width: 150px; }
+  label { display: block; font-size: 13px; margin-bottom: 4px; }
+  input, textarea { width: 100%; padding: 8px; border: 1px solid var(--gris-borde); border-radius: 6px; font-size: 14px; }
+  .btn { background: var(--negro); color: #fff; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+  .btn:hover { background: var(--dorado); }
+  .btn-danger { background: #c0392b; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--gris-borde); font-size: 14px; }
+  td img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; }
+  #login-box { max-width: 340px; margin: 100px auto; }
+</style>
+</head>
+<body>
+
+<div id="login-box" class="box" style="display:none">
+  <h2>Ingresar</h2>
+  <label>Contraseña</label>
+  <input type="password" id="password" placeholder="Contraseña de administración">
+  <button class="btn" style="margin-top:12px;" onclick="login()">Entrar</button>
+  <p id="login-error" style="color:#c0392b; margin-top:8px;"></p>
+</div>
+
+<div id="panel" style="display:none">
+  <header>
+    <h1>HERA - Admin</h1>
+  </header>
+
+  <div class="admin-wrap">
+
+    <div class="box">
+      <h2>Agregar producto</h2>
+      <form id="product-form">
+        <div class="form-row">
+          <div><label>Nombre</label><input type="text" id="p-name" required></div>
+          <div><label>Precio</label><input type="number" id="p-price" required></div>
+          <div><label>Stock</label><input type="number" id="p-stock" value="999"></div>
+        </div>
+        <div class="form-row">
+          <div><label>Descripción (opcional)</label><textarea id="p-desc" rows="2"></textarea></div>
+        </div>
+        <div class="form-row">
+          <div><label>Foto</label><input type="file" id="p-image" accept="image/*" required></div>
+        </div>
+        <button type="submit" class="btn">Guardar producto</button>
+      </form>
+    </div>
+
+    <div class="box">
+      <h2>Productos</h2>
+      <table id="products-table">
+        <thead><tr><th>Foto</th><th>Nombre</th><th>Precio</th><th>Stock</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="box">
+      <h2>Zonas de envío</h2>
+      <div class="form-row">
+        <div><label>Nombre de la zona</label><input type="text" id="z-name" placeholder="Ej: CABA, Córdoba Capital, Interior"></div>
+        <div><label>Costo</label><input type="number" id="z-cost"></div>
+      </div>
+      <button class="btn" onclick="agregarZona()">Agregar zona</button>
+      <table id="zones-table">
+        <thead><tr><th>Zona</th><th>Costo</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="box">
+      <h2>Últimas ventas</h2>
+      <table id="orders-table">
+        <thead><tr><th>Fecha</th><th>Comprador</th><th>Total</th><th>Estado</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script src="js/admin.js"></script>
+</body>
+</html>
