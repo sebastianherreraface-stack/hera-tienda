@@ -5,6 +5,149 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hera - Accesorios</title>
 <link rel="stylesheet" href="css/style.css">
+<style>
+  /* Modal de producto */
+  #product-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  #product-modal.active { display: flex; }
+  .modal-content {
+    background: white;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute;
+    top: 12px; right: 16px;
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #666;
+  }
+  .modal-close:hover { color: #000; }
+  .modal-img {
+    width: 100%;
+    max-height: 350px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .modal-name {
+    font-family: Georgia, serif;
+    font-size: 24px;
+    margin: 0 0 8px;
+    color: var(--negro, #000);
+  }
+  .modal-price {
+    color: var(--dorado, #b8860b);
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 12px;
+  }
+  .modal-desc {
+    color: #666;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  .size-selector {
+    margin: 20px 0;
+    padding: 16px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    border-left: 4px solid var(--dorado, #b8860b);
+  }
+  .size-selector label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: var(--dorado, #b8860b);
+  }
+  .size-selector select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+    background: white;
+  }
+  .size-selector small {
+    display: block;
+    margin-top: 8px;
+    color: #666;
+    font-size: 13px;
+  }
+  .size-selector small a {
+    color: var(--dorado, #b8860b);
+    text-decoration: none;
+  }
+  .size-error {
+    color: #c0392b;
+    margin-top: 8px;
+    display: none;
+    font-size: 14px;
+  }
+  .quantity-selector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .quantity-selector label {
+    font-weight: bold;
+  }
+  .quantity-selector button {
+    width: 36px; height: 36px;
+    border: 1px solid #ddd;
+    background: white;
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  .quantity-selector button:hover { background: #f0f0f0; }
+  .quantity-selector span {
+    min-width: 40px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  .btn-add-cart {
+    width: 100%;
+    padding: 14px;
+    background: var(--negro, #000);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  .btn-add-cart:hover { background: var(--dorado, #b8860b); }
+  .category-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    background: #ffe0b2;
+    color: #e65100;
+    margin-bottom: 10px;
+  }
+</style>
 </head>
 <body>
 
@@ -18,6 +161,40 @@
 </main>
 
 <footer>Hera © 2026</footer>
+
+<!-- ---------- Modal de Producto ---------- -->
+<div id="product-modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <img id="modal-img" class="modal-img" src="" alt="">
+    <div id="modal-category" class="category-badge" style="display:none;"></div>
+    <h2 id="modal-name" class="modal-name"></h2>
+    <p id="modal-price" class="modal-price"></p>
+    <p id="modal-desc" class="modal-desc"></p>
+    
+    <!-- Selector de talles (solo para anillos) -->
+    <div id="size-selector" class="size-selector" style="display:none;">
+      <label>💍 Seleccioná tu medida:</label>
+      <select id="product-size">
+        <option value="">Seleccionar medida...</option>
+      </select>
+      <small>
+        💡 ¿No sabés tu medida? <a href="https://wa.me/5493515064737?text=Hola!%20Necesito%20ayuda%20con%20la%20medida%20del%20anillo" target="_blank">Consultanos por WhatsApp</a>
+      </small>
+      <p id="size-error" class="size-error">⚠️ Por favor seleccioná una medida antes de agregar al carrito</p>
+    </div>
+    
+    <!-- Selector de cantidad -->
+    <div class="quantity-selector">
+      <label>Cantidad:</label>
+      <button type="button" onclick="changeQuantity(-1)">−</button>
+      <span id="quantity-display">1</span>
+      <button type="button" onclick="changeQuantity(1)">+</button>
+    </div>
+    
+    <button class="btn-add-cart" onclick="addToCart()"> Agregar al carrito</button>
+  </div>
+</div>
 
 <!-- ---------- Carrito ---------- -->
 <div id="cart-overlay">
@@ -44,7 +221,8 @@
 </div>
 
 <script src="js/store.js"></script>
-  <!-- Botón Flotante de WhatsApp -->
+
+<!-- Botón Flotante de WhatsApp -->
 <a href="https://wa.me/5493515064737?text=¡Hola%20Hera!%20💎✨%20Me%20encantan%20sus%20accesorios%20y%20tengo%20una%20consulta.%20¿Me%20ayudan?" 
    class="whatsapp-float" 
    target="_blank" 
