@@ -144,3 +144,72 @@ async function cargarOrdenes() {
 }
 
 verificarSesion();
+// ================== ACTUALIZACIÓN MASIVA DE PRECIOS ==================
+const uploadPricesForm = document.getElementById('upload-prices-form');
+
+if (uploadPricesForm) {
+    uploadPricesForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const fileInput = document.getElementById('prices-file');
+        const resultDiv = document.getElementById('upload-result');
+        const btn = document.getElementById('btn-update-prices');
+        
+        if (!fileInput.files[0]) {
+            alert('Por favor seleccioná un archivo Excel');
+            return;
+        }
+
+        // Deshabilitar botón mientras se sube
+        btn.disabled = true;
+        btn.textContent = ' Procesando...';
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<p style="color: #007bff;">Subiendo archivo...</p>';
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        try {
+            // Obtener el token de admin desde localStorage o sessionStorage
+            const adminPassword = localStorage.getItem('adminPassword') || sessionStorage.getItem('adminPassword');
+            
+            const response = await fetch('/api/admin/update-prices', {
+                method: 'POST',
+                headers: {
+                    'x-admin-password': adminPassword || 'hera2024'
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                resultDiv.innerHTML = `
+                    <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 4px; border: 1px solid #c3e6cb;">
+                        <strong>✅ ¡Actualización completada!</strong><br>
+                        Productos actualizados: ${data.message}<br>
+                        ${data.notFound > 0 ? `<span style="color: #856404;">⚠️ No encontrados: ${data.notFound}</span>` : ''}
+                        ${data.errors && data.errors.length > 0 ? `<br><small>Errores: ${data.errors.join(', ')}</small>` : ''}
+                    </div>
+                `;
+                fileInput.value = ''; // Limpiar el input
+            } else {
+                resultDiv.innerHTML = `
+                    <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 4px; border: 1px solid #f5c6cb;">
+                        <strong>❌ Error:</strong> ${data.error}
+                    </div>
+                `;
+            }
+
+        } catch (error) {
+            resultDiv.innerHTML = `
+                <div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 4px; border: 1px solid #f5c6cb;">
+                    <strong>❌ Error de conexión:</strong> ${error.message}
+                </div>
+            `;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = ' Actualizar Precios';
+        }
+    });
+}
