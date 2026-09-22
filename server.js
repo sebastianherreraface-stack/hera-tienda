@@ -106,15 +106,25 @@ app.post('/api/create-preference', async (req, res) => {
       const p = dbProducts.find(dp => dp._id.toString() === it.productId);
       if (!p) continue;
       const qty = Math.max(1, parseInt(it.quantity) || 1);
+      
+      // Agregar el tamaño al título si existe (para anillos)
+      const title = p.name + (it.size ? ` (Medida: ${it.size})` : '');
+      
       mpItems.push({
         id: p._id.toString(),
-        title: p.name,
+        title: title,
         quantity: qty,
         unit_price: p.price,
         currency_id: 'ARS'
       });
       total += p.price * qty;
-      orderItems.push({ productId: p._id.toString(), name: p.name, price: p.price, quantity: qty });
+      orderItems.push({ 
+        productId: p._id.toString(), 
+        name: p.name, 
+        price: p.price, 
+        quantity: qty,
+        size: it.size || null
+      });
     }
 
     mpItems.push({
@@ -205,13 +215,26 @@ app.get('/api/admin/products', requireAdmin, async (req, res) => {
 
 app.post('/api/admin/products', requireAdmin, upload.single('image'), async (req, res) => {
   try {
-    const { name, price, description, stock } = req.body;
+    const { name, price, description, stock, category, sizes } = req.body;
     if (!req.file) return res.status(400).json({ error: 'Falta la foto' });
+    
+    // Parsear sizes si viene como string JSON
+    let sizesArray = [];
+    if (sizes) {
+      try {
+        sizesArray = JSON.parse(sizes);
+      } catch (e) {
+        sizesArray = sizes.split(',').map(s => s.trim()).filter(s => s);
+      }
+    }
+    
     const product = await Product.create({
       name,
       price: parseFloat(price),
       description: description || '',
       stock: stock ? parseInt(stock) : 999,
+      category: category || 'general',
+      sizes: sizesArray,
       imageUrl: req.file.path,
       imagePublicId: req.file.filename
     });
@@ -224,8 +247,28 @@ app.post('/api/admin/products', requireAdmin, upload.single('image'), async (req
 
 app.put('/api/admin/products/:id', requireAdmin, upload.single('image'), async (req, res) => {
   try {
-    const { name, price, description, stock, active } = req.body;
-    const update = { name, price: parseFloat(price), description, stock: parseInt(stock), active: active !== 'false' };
+    const { name, price, description, stock, category, sizes, active } = req.body;
+    
+    // Parsear sizes si viene como string JSON
+    let sizesArray = [];
+    if (sizes) {
+      try {
+        sizesArray = JSON.parse(sizes);
+      } catch (e) {
+        sizesArray = sizes.split(',').map(s => s.trim()).filter(s => s);
+      }
+    }
+    
+    const update = { 
+      name, 
+      price: parseFloat(price), 
+      description, 
+      stock: parseInt(stock), 
+      active: active !== 'false',
+      category: category || 'general',
+      sizes: sizesArray
+    };
+    
     if (req.file) {
       update.imageUrl = req.file.path;
       update.imagePublicId = req.file.filename;
