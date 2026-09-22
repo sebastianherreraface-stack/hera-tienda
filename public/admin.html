@@ -18,6 +18,8 @@
   .btn-danger { background: #c0392b; }
   .btn-success { background: #25D366; }
   .btn-success:hover { background: #128C7E; }
+  .btn-warning { background: #f39c12; }
+  .btn-warning:hover { background: #e67e22; }
   table { width: 100%; border-collapse: collapse; margin-top: 10px; }
   th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--gris-borde); font-size: 14px; }
   td img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; }
@@ -30,6 +32,8 @@
   .category-badge.collares { background: #b3e5fc; color: #01579b; }
   .category-badge.aros { background: #f8bbd0; color: #880e4f; }
   .category-badge.pulseras { background: #c8e6c9; color: #1b5e20; }
+  .action-buttons { display: flex; gap: 8px; }
+  .action-buttons .btn { padding: 6px 12px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -49,17 +53,16 @@
 
   <div class="admin-wrap">
 
-    <!-- FORMULARIO DE PRODUCTO ACTUALIZADO -->
+    <!-- FORMULARIO DE PRODUCTO (Crear/Editar) -->
     <div class="box">
-      <h2>Agregar producto</h2>
+      <h2 id="form-title">Agregar producto</h2>
       <form id="product-form">
+        <input type="hidden" id="p-id">
         <div class="form-row">
           <div><label>Nombre</label><input type="text" id="p-name" required></div>
           <div><label>Precio</label><input type="number" id="p-price" required></div>
           <div><label>Stock</label><input type="number" id="p-stock" value="999"></div>
         </div>
-        
-        <!-- NUEVOS CAMPOS: Categoría y Talles -->
         <div class="form-row">
           <div>
             <label>Categoría</label>
@@ -77,22 +80,23 @@
             <small style="color:#666; font-size:12px;"> Solo para anillos. Dejá vacío si no aplica.</small>
           </div>
         </div>
-        <!-- FIN NUEVOS CAMPOS -->
-        
         <div class="form-row">
           <div><label>Descripción (opcional)</label><textarea id="p-desc" rows="2"></textarea></div>
         </div>
         <div class="form-row">
-          <div><label>Foto</label><input type="file" id="p-image" accept="image/*" required></div>
+          <div><label>Foto <span id="photo-hint" style="color:#666; font-weight:normal;">(obligatoria para nuevos)</span></label><input type="file" id="p-image" accept="image/*"></div>
         </div>
-        <button type="submit" class="btn">Guardar producto</button>
+        <div style="display: flex; gap: 10px;">
+          <button type="submit" class="btn" id="btn-save">Guardar producto</button>
+          <button type="button" class="btn btn-warning" id="btn-cancel" style="display:none;" onclick="cancelEdit()">Cancelar edición</button>
+        </div>
       </form>
     </div>
 
     <div class="box">
       <h2>Productos</h2>
       <table id="products-table">
-        <thead><tr><th>Foto</th><th>Nombre</th><th>Precio</th><th>Stock</th><th></th></tr></thead>
+        <thead><tr><th>Foto</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -116,7 +120,6 @@
       <p style="color: #666; margin-bottom: 15px; font-size: 14px;">
         Subí un archivo Excel (.xlsx) para actualizar los precios de varios productos a la vez.
       </p>
-      
       <form id="upload-prices-form">
         <div class="form-row">
           <div style="flex: 2;">
@@ -126,19 +129,13 @@
         </div>
         <button type="submit" id="btn-update-prices" class="btn btn-success">📤 Actualizar Precios</button>
       </form>
-      
       <div id="upload-result"></div>
-      
       <div class="info-box">
         <strong>💡 Formato del Excel:</strong>
         <p style="margin: 8px 0;">El archivo debe tener estas columnas en la primera fila:</p>
-        <code>sku</code> o <code>nombre</code> + <code>precio</code>
-        <p style="margin: 10px 0 0 0; color: #666;">
-          Ejemplo: <code>ARO001</code> | <code>Aros dorados</code> | <code>5500</code>
-        </p>
-        <p style="margin: 10px 0 0 0; color: #666; font-size: 13px;">
-          ️ El precio debe ser solo números (sin $ ni comas).
-        </p>
+        <code>nombre</code> + <code>precio</code>
+        <p style="margin: 10px 0 0 0; color: #666;">Ejemplo: <code>anillo flow</code> | <code>5500</code></p>
+        <p style="margin: 10px 0 0 0; color: #666; font-size: 13px;">⚠️ El precio debe ser solo números (sin $ ni comas).</p>
       </div>
     </div>
 
