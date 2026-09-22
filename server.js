@@ -258,7 +258,7 @@ app.get('/api/admin/orders', requireAdmin, async (req, res) => {
   res.json(orders);
 });
 
-// ================== RUTA EXCEL (BÚSQUEDA EXACTA) ==================
+// ================== RUTA EXCEL (BÚSQUEDA NORMALIZADA) ==================
 app.post('/api/admin/update-prices', requireAdmin, uploadLocal.single('file'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo' });
@@ -267,10 +267,10 @@ app.post('/api/admin/update-prices', requireAdmin, uploadLocal.single('file'), a
         const sheetName = workbook.SheetNames[0];
         const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-        console.log(' DATOS CRUDOS DEL EXCEL:', JSON.stringify(data, null, 2));
+        console.log('📊 DATOS CRUDOS DEL EXCEL:', JSON.stringify(data, null, 2));
 
         const todosLosProductos = await Product.find({});
-        console.log('️ PRODUCTOS EN BD:', todosLosProductos.map(p => ({ id: p._id, name: p.name, price: p.price })));
+        console.log('🗄️ PRODUCTOS EN BD:', todosLosProductos.map(p => ({ id: p._id, name: p.name, price: p.price })));
 
         let updatedCount = 0;
         let notFoundCount = 0;
@@ -284,26 +284,29 @@ app.post('/api/admin/update-prices', requireAdmin, uploadLocal.single('file'), a
             });
 
             let product = null;
-            console.log('🔍 Fila normalizada:', rowNorm);
+            console.log(' Fila normalizada:', rowNorm);
 
             // 2. Buscar por SKU si existe
             if (rowNorm.sku) {
                 product = await Product.findOne({ sku: String(rowNorm.sku).trim() });
             }
             
-            // 3. BÚSQUEDA EXACTA POR NOMBRE (case-insensitive)
+            // 3. BÚSQUEDA NORMALIZADA POR NOMBRE (ignora espacios y mayúsculas)
             if (!product && rowNorm.nombre) {
-                const nombreBuscado = String(rowNorm.nombre).trim();
+                const nombreBuscado = String(rowNorm.nombre).trim().toLowerCase();
                 
-                // Buscar EXACTAMENTE ese nombre (ignorando mayúsculas/minúsculas)
-                product = await Product.findOne({ 
-                    name: { $regex: new RegExp('^' + nombreBuscado + '$', 'i') }
-                });
+                // Buscar comparando nombres normalizados (sin espacios extra)
+                for (const p of todosLosProductos) {
+                    const nombreDB = String(p.name).trim().toLowerCase();
+                    if (nombreDB === nombreBuscado) {
+                        product = p;
+                        console.log('✅ Encontrado EXACTO (normalizado):', p.name);
+                        break;
+                    }
+                }
                 
-                if (product) {
-                    console.log('✅ Encontrado EXACTO:', product.name);
-                } else {
-                    console.log('❌ NO ENCONTRADO (nombre exacto):', nombreBuscado);
+                if (!product) {
+                    console.log(' NO ENCONTRADO (nombre exacto):', nombreBuscado);
                     console.log('   Productos disponibles:', todosLosProductos.map(p => `"${p.name}"`).join(', '));
                 }
             }
