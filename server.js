@@ -8,6 +8,10 @@ const cloudinary = require('cloudinary').v2;
 const nodemailer = require('nodemailer');
 const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const path = require('path');
+const xlsx = require('xlsx');
+const fs = require('fs');
+// Configuración para subir archivos temporalmente
+const upload = multer({ dest: 'uploads/' });
 
 const Product = require('./models/Product');
 const ShippingZone = require('./models/ShippingZone');
@@ -270,4 +274,58 @@ app.get('/api/admin/orders', requireAdmin, async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+// RUTA PARA ACTUALIZAR PRECIOS CON EXCEL
+app.post('/admin/update-prices', upload.single('file'), async (req, res) => {
+    try {
+        // 1. Verificar contraseña de admin
+        if (req.body.password !== 'hera2024') {
+            return res.status(401).json({ error: 'Contraseña incorrecta' });
+        }
+
+        // 2. Verificar que se subió un archivo
+        if (!req.file) {
+            return res.status(400).json({ error: 'No se subió ningún archivo' });
+        }
+
+        // 3. Leer el archivo Excel
+        const workbook = xlsx.readFile(req.file.path);
+        const sheetName = workbook.SheetNames[0];
+        const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+        let updatedCount = 0;
+        let notFoundCount = 0;
+        const errors = [];
+
+        // 4. Recorrer cada fila del Excel
+        for (const row of data) {
+            const searchCriteria = row.sku ? { sku: row.sku } : { name: row.nombre };
+            
+            const product = await Product.findOne(searchCriteria);
+            
+            if (product && row.precio) {
+                product.price = Number(row.precio);
+                await product.save();
+                updatedCount++;
+            } else {
+                notFoundCount++;
+                errors.push(`No encontrado o sin precio: ${row.sku || row.nombre}`);
+            }
+        }
+
+        // 5. Borrar el archivo temporal
+        fs.unlinkSync(req.file.path);
+
+        // 6. Enviar respuesta
+        res.json({
+            success: true,
+            message: `${updatedCount} productos actualizados`,
+            notFound: notFoundCount,
+            errors: errors.slice(0, 5)
+        });
+
+    } catch (error) {
+        console.error('Error al actualizar precios:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
 app.listen(PORT, () => console.log(`Hera tienda corriendo en puerto ${PORT}`));
