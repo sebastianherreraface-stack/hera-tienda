@@ -274,7 +274,7 @@ app.get('/api/admin/orders', requireAdmin, async (req, res) => {
   res.json(orders);
 });
 
-// ================== RUTA PARA ACTUALIZAR PRECIOS CON EXCEL (CON LOGS) ==================
+// ================== RUTA PARA ACTUALIZAR PRECIOS CON EXCEL (MEJORADA) ==================
 app.post('/api/admin/update-prices', requireAdmin, uploadLocal.single('file'), async (req, res) => {
     try {
         if (!req.file) {
@@ -286,8 +286,14 @@ app.post('/api/admin/update-prices', requireAdmin, uploadLocal.single('file'), a
         const sheetName = workbook.SheetNames[0];
         const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-        // 🚨 LOG DE DEPURACIÓN: Ver qué está leyendo exactamente el servidor
         console.log('📊 DATOS LEÍDOS DEL EXCEL:', JSON.stringify(data, null, 2));
+
+        // 🗄️ LOG: Mostrar TODOS los productos de la base de datos para comparar
+        const todosLosProductos = await Product.find({});
+        console.log('🗄️ PRODUCTOS EN LA BASE DE DATOS:');
+        todosLosProductos.forEach(p => {
+            console.log(`   - ID: ${p._id} | Nombre: "${p.name}" | Precio: ${p.price}`);
+        });
 
         let updatedCount = 0;
         let notFoundCount = 0;
@@ -304,14 +310,20 @@ app.post('/api/admin/update-prices', requireAdmin, uploadLocal.single('file'), a
                 product = await Product.findOne({ sku: String(row.sku).trim() });
             }
             
-            // Si no tiene SKU o no lo encontró, busca por nombre
+            // 🆕 Búsqueda más flexible por nombre (usa includes en lugar de regex exacto)
             if (!product && row.nombre) {
-                const nombreLimpio = String(row.nombre).trim();
+                const nombreLimpio = String(row.nombre).trim().toLowerCase();
                 console.log('🔎 Buscando producto con nombre limpio:', `"${nombreLimpio}"`);
                 
-                product = await Product.findOne({ 
-                    name: { $regex: `^${nombreLimpio}$`, $options: 'i' } 
-                });
+                // Buscar en todos los productos el que tenga el nombre similar
+                for (const p of todosLosProductos) {
+                    const nombreDB = String(p.name).trim().toLowerCase();
+                    if (nombreDB === nombreLimpio || nombreDB.includes(nombreLimpio) || nombreLimpio.includes(nombreDB)) {
+                        product = p;
+                        console.log('✅ Producto encontrado por similitud:', p.name);
+                        break;
+                    }
+                }
             }
             
             if (product && row.precio) {
@@ -327,7 +339,7 @@ app.post('/api/admin/update-prices', requireAdmin, uploadLocal.single('file'), a
             }
         }
 
-        // 3. Borrar el archivo temporal para no llenar el servidor
+        // 3. Borrar el archivo temporal
         fs.unlinkSync(req.file.path);
 
         // 4. Enviar respuesta al frontend
