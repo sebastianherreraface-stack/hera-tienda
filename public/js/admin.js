@@ -48,15 +48,44 @@ async function login() {
   }
 }
 
+// ---------------- Mostrar/Ocultar campo de talles ----------------
+function toggleSizesInput() {
+  const category = document.getElementById('p-category').value;
+  const sizesContainer = document.getElementById('sizes-container');
+  
+  if (category === 'anillo') {
+    sizesContainer.style.display = 'block';
+  } else {
+    sizesContainer.style.display = 'none';
+  }
+}
+
 // ---------------- Productos ----------------
 async function cargarProductosAdmin() {
   const res = await fetch('/api/admin/products', { headers: headersAdmin() });
   const productos = await res.json();
   const tbody = document.querySelector('#products-table tbody');
+  
+  // Función para obtener badge de categoría
+  function getCategoryBadge(category) {
+    const categories = {
+      'anillo': '<span class="category-badge anillo">💍 Anillo</span>',
+      'collar': '<span class="category-badge collares"> Collar</span>',
+      'aro': '<span class="category-badge aros">✨ Aro</span>',
+      'pulsera': '<span class="category-badge pulseras"> Pulsera</span>',
+      'general': ''
+    };
+    return categories[category] || '';
+  }
+  
   tbody.innerHTML = productos.map(p => `
     <tr>
       <td><img src="${p.imageUrl}" alt="Producto"></td>
-      <td>${p.name}</td>
+      <td>
+        ${p.name}
+        ${getCategoryBadge(p.category)}
+        ${p.sizes && p.sizes.length > 0 ? `<br><small style="color:#666;">Talles: ${p.sizes.join(', ')}</small>` : ''}
+      </td>
       <td>$${p.price}</td>
       <td>${p.stock}</td>
       <td><button class="btn btn-danger" onclick="borrarProducto('${p._id}')">Borrar</button></td>
@@ -64,28 +93,53 @@ async function cargarProductosAdmin() {
   `).join('');
 }
 
-document.getElementById('product-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const fd = new FormData();
-  fd.append('name', document.getElementById('p-name').value);
-  fd.append('price', document.getElementById('p-price').value);
-  fd.append('stock', document.getElementById('p-stock').value);
-  fd.append('description', document.getElementById('p-desc').value);
-  fd.append('image', document.getElementById('p-image').files[0]);
+// Modificar el submit del formulario de productos
+const productForm = document.getElementById('product-form');
+if (productForm) {
+  // Remover listener anterior si existe
+  const newForm = productForm.cloneNode(true);
+  productForm.parentNode.replaceChild(newForm, productForm);
+  
+  newForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData();
+    fd.append('name', document.getElementById('p-name').value);
+    fd.append('price', document.getElementById('p-price').value);
+    fd.append('stock', document.getElementById('p-stock').value);
+    fd.append('description', document.getElementById('p-desc').value);
+    fd.append('image', document.getElementById('p-image').files[0]);
+    
+    // Agregar categoría
+    const category = document.getElementById('p-category').value;
+    fd.append('category', category);
+    
+    // Agregar talles si es anillo
+    if (category === 'anillo') {
+      const sizesInput = document.getElementById('p-sizes').value.trim();
+      if (sizesInput) {
+        // Convertir "12, 13, 14" en ["12", "13", "14"]
+        const sizes = sizesInput.split(',').map(s => s.trim()).filter(s => s);
+        fd.append('sizes', JSON.stringify(sizes));
+      }
+    }
 
-  const res = await fetch('/api/admin/products', {
-    method: 'POST',
-    headers: headersAdmin(),
-    body: fd
+    const res = await fetch('/api/admin/products', {
+      method: 'POST',
+      headers: headersAdmin(),
+      body: fd
+    });
+
+    if (res.ok) {
+      newForm.reset();
+      toggleSizesInput();
+      cargarProductosAdmin();
+      alert('Producto guardado correctamente');
+    } else {
+      const error = await res.json();
+      alert('Error: ' + error.error);
+    }
   });
-
-  if (res.ok) {
-    e.target.reset();
-    cargarProductosAdmin();
-  } else {
-    alert('No se pudo guardar el producto');
-  }
-});
+}
 
 async function borrarProducto(id) {
   if (!confirm('¿Borrar este producto?')) return;
@@ -202,7 +256,7 @@ if (uploadPricesForm) {
       `;
     } finally {
       btn.disabled = false;
-      btn.textContent = '📤 Actualizar Precios';
+      btn.textContent = ' Actualizar Precios';
     }
   });
 }
