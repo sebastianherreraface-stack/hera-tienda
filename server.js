@@ -10,8 +10,9 @@ const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const path = require('path');
 const xlsx = require('xlsx');
 const fs = require('fs');
-// Configuración para subir archivos temporalmente
-const upload = multer({ dest: 'uploads/' });
+
+// Instancia de multer SOLO para subir el Excel localmente (sin Cloudinary)
+const uploadLocal = multer({ dest: 'uploads/' });
 
 const Product = require('./models/Product');
 const ShippingZone = require('./models/ShippingZone');
@@ -273,21 +274,14 @@ app.get('/api/admin/orders', requireAdmin, async (req, res) => {
   res.json(orders);
 });
 
-const PORT = process.env.PORT || 3000;
-// RUTA PARA ACTUALIZAR PRECIOS CON EXCEL
-app.post('/admin/update-prices', upload.single('file'), async (req, res) => {
+// ================== RUTA PARA ACTUALIZAR PRECIOS CON EXCEL ==================
+app.post('/api/admin/update-prices', requireAdmin, uploadLocal.single('file'), async (req, res) => {
     try {
-        // 1. Verificar contraseña de admin
-        if (req.body.password !== 'hera2024') {
-            return res.status(401).json({ error: 'Contraseña incorrecta' });
-        }
-
-        // 2. Verificar que se subió un archivo
         if (!req.file) {
             return res.status(400).json({ error: 'No se subió ningún archivo' });
         }
 
-        // 3. Leer el archivo Excel
+        // 1. Leer el archivo Excel
         const workbook = xlsx.readFile(req.file.path);
         const sheetName = workbook.SheetNames[0];
         const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
@@ -296,14 +290,15 @@ app.post('/admin/update-prices', upload.single('file'), async (req, res) => {
         let notFoundCount = 0;
         const errors = [];
 
-        // 4. Recorrer cada fila del Excel
+        // 2. Recorrer cada fila del Excel
         for (const row of data) {
+            // Busca por 'sku' o por 'name' (ajusta si tus campos se llaman diferente en tu modelo)
             const searchCriteria = row.sku ? { sku: row.sku } : { name: row.nombre };
             
             const product = await Product.findOne(searchCriteria);
             
             if (product && row.precio) {
-                product.price = Number(row.precio);
+                product.price = Number(row.precio); // Aseguramos que sea número
                 await product.save();
                 updatedCount++;
             } else {
@@ -312,20 +307,22 @@ app.post('/admin/update-prices', upload.single('file'), async (req, res) => {
             }
         }
 
-        // 5. Borrar el archivo temporal
+        // 3. Borrar el archivo temporal para no llenar el servidor
         fs.unlinkSync(req.file.path);
 
-        // 6. Enviar respuesta
+        // 4. Enviar respuesta al frontend
         res.json({
             success: true,
             message: `${updatedCount} productos actualizados`,
             notFound: notFoundCount,
-            errors: errors.slice(0, 5)
+            errors: errors.slice(0, 5) // Muestra solo los primeros 5 errores para no saturar
         });
 
     } catch (error) {
         console.error('Error al actualizar precios:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        res.status(500).json({ error: 'Error interno del servidor al procesar el Excel' });
     }
 });
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Hera tienda corriendo en puerto ${PORT}`));
