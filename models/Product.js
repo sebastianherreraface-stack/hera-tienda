@@ -8,7 +8,7 @@ const productSchema = new mongoose.Schema({
   imageUrl: String,
   imagePublicId: String,
   category: { type: String, default: 'general' }, // 'anillo', 'collar', 'aro', etc.
-  sizes: [String], // Para anillos: ['12', '13', '14', '15', '16', '17', '18']
+  sizes: [String], // Para anillos: ['12', '13', '14', etc.]
   active: { type: Boolean, default: true }
 }, { timestamps: true });
 
