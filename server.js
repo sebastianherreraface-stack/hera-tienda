@@ -274,7 +274,7 @@ app.get('/api/admin/orders', requireAdmin, async (req, res) => {
   res.json(orders);
 });
 
-// ================== RUTA PARA ACTUALIZAR PRECIOS CON EXCEL ==================
+// ================== RUTA PARA ACTUALIZAR PRECIOS CON EXCEL (CON LOGS) ==================
 app.post('/api/admin/update-prices', requireAdmin, uploadLocal.single('file'), async (req, res) => {
     try {
         if (!req.file) {
@@ -286,34 +286,44 @@ app.post('/api/admin/update-prices', requireAdmin, uploadLocal.single('file'), a
         const sheetName = workbook.SheetNames[0];
         const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
+        // 🚨 LOG DE DEPURACIÓN: Ver qué está leyendo exactamente el servidor
+        console.log('📊 DATOS LEÍDOS DEL EXCEL:', JSON.stringify(data, null, 2));
+
         let updatedCount = 0;
         let notFoundCount = 0;
         const errors = [];
 
-        // 2. Recorrer cada fila del Excel (BÚSQUEDA MEJORADA)
+        // 2. Recorrer cada fila del Excel
         for (const row of data) {
             let product = null;
             
+            console.log('🔍 Procesando fila:', row);
+
             // Si tiene SKU, busca por SKU exacto
             if (row.sku) {
-                product = await Product.findOne({ sku: row.sku });
+                product = await Product.findOne({ sku: String(row.sku).trim() });
             }
             
-            // Si no tiene SKU o no lo encontró, busca por nombre (ignorando mayúsculas y espacios)
+            // Si no tiene SKU o no lo encontró, busca por nombre
             if (!product && row.nombre) {
                 const nombreLimpio = String(row.nombre).trim();
+                console.log('🔎 Buscando producto con nombre limpio:', `"${nombreLimpio}"`);
+                
                 product = await Product.findOne({ 
                     name: { $regex: `^${nombreLimpio}$`, $options: 'i' } 
                 });
             }
             
             if (product && row.precio) {
-                product.price = Number(row.precio); // Aseguramos que sea número
+                product.price = Number(row.precio);
                 await product.save();
                 updatedCount++;
+                console.log('✅ Actualizado:', product.name, 'a', product.price);
             } else {
                 notFoundCount++;
-                errors.push(`No encontrado o sin precio: ${row.sku || row.nombre}`);
+                const errorMsg = `No encontrado o sin precio: ${row.sku || row.nombre}`;
+                errors.push(errorMsg);
+                console.log('❌', errorMsg);
             }
         }
 
@@ -325,11 +335,11 @@ app.post('/api/admin/update-prices', requireAdmin, uploadLocal.single('file'), a
             success: true,
             message: `${updatedCount} productos actualizados`,
             notFound: notFoundCount,
-            errors: errors.slice(0, 5) // Muestra solo los primeros 5 errores para no saturar
+            errors: errors.slice(0, 5)
         });
 
     } catch (error) {
-        console.error('Error al actualizar precios:', error);
+        console.error('❌ Error al actualizar precios:', error);
         res.status(500).json({ error: 'Error interno del servidor al procesar el Excel' });
     }
 });
