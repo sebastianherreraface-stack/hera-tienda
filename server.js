@@ -164,7 +164,6 @@ app.post('/api/webhook', async (req, res) => {
           mpPaymentId: paymentId,
           status: 'approved'
         });
-        // Nota: avisarVenta se llama, pero si EMAIL_USER/PASS no están configurados, fallará silenciosamente (está bien por ahora)
       }
     }
     res.sendStatus(200);
@@ -259,7 +258,7 @@ app.get('/api/admin/orders', requireAdmin, async (req, res) => {
   res.json(orders);
 });
 
-// ================== RUTA EXCEL (A PRUEBA DE FALLAS) ==================
+// ================== RUTA EXCEL (BÚSQUEDA EXACTA) ==================
 app.post('/api/admin/update-prices', requireAdmin, uploadLocal.single('file'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo' });
@@ -268,10 +267,10 @@ app.post('/api/admin/update-prices', requireAdmin, uploadLocal.single('file'), a
         const sheetName = workbook.SheetNames[0];
         const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-        console.log('📊 DATOS CRUDOS DEL EXCEL:', JSON.stringify(data, null, 2));
+        console.log(' DATOS CRUDOS DEL EXCEL:', JSON.stringify(data, null, 2));
 
         const todosLosProductos = await Product.find({});
-        console.log('🗄️ PRODUCTOS EN BD:', todosLosProductos.map(p => ({ id: p._id, name: p.name, price: p.price })));
+        console.log('️ PRODUCTOS EN BD:', todosLosProductos.map(p => ({ id: p._id, name: p.name, price: p.price })));
 
         let updatedCount = 0;
         let notFoundCount = 0;
@@ -287,31 +286,37 @@ app.post('/api/admin/update-prices', requireAdmin, uploadLocal.single('file'), a
             let product = null;
             console.log('🔍 Fila normalizada:', rowNorm);
 
+            // 2. Buscar por SKU si existe
             if (rowNorm.sku) {
                 product = await Product.findOne({ sku: String(rowNorm.sku).trim() });
             }
             
+            // 3. BÚSQUEDA EXACTA POR NOMBRE (case-insensitive)
             if (!product && rowNorm.nombre) {
-                const nombreLimpio = String(rowNorm.nombre).trim().toLowerCase();
-                for (const p of todosLosProductos) {
-                    const nombreDB = String(p.name).trim().toLowerCase();
-                    if (nombreDB === nombreLimpio || nombreDB.includes(nombreLimpio) || nombreLimpio.includes(nombreDB)) {
-                        product = p;
-                        console.log('✅ Encontrado por similitud:', p.name);
-                        break;
-                    }
+                const nombreBuscado = String(rowNorm.nombre).trim();
+                
+                // Buscar EXACTAMENTE ese nombre (ignorando mayúsculas/minúsculas)
+                product = await Product.findOne({ 
+                    name: { $regex: new RegExp('^' + nombreBuscado + '$', 'i') }
+                });
+                
+                if (product) {
+                    console.log('✅ Encontrado EXACTO:', product.name);
+                } else {
+                    console.log('❌ NO ENCONTRADO (nombre exacto):', nombreBuscado);
+                    console.log('   Productos disponibles:', todosLosProductos.map(p => `"${p.name}"`).join(', '));
                 }
             }
             
+            // 4. Actualizar precio si se encontró el producto
             if (product && rowNorm.precio !== undefined) {
                 product.price = Number(rowNorm.precio);
                 await product.save();
                 updatedCount++;
                 console.log('💰 Actualizado:', product.name, 'a $', product.price);
-            } else {
+            } else if (!product) {
                 notFoundCount++;
-                errors.push(`No encontrado o falta precio: ${rowNorm.sku || rowNorm.nombre || 'Fila sin nombre'}`);
-                console.log('❌ No actualizado:', rowNorm);
+                errors.push(`No encontrado: ${rowNorm.nombre || rowNorm.sku || 'Fila sin nombre'}`);
             }
         }
 
