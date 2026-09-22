@@ -12,7 +12,7 @@
   .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
   .form-row > div { flex: 1; min-width: 150px; }
   label { display: block; font-size: 13px; margin-bottom: 4px; }
-  input, textarea { width: 100%; padding: 8px; border: 1px solid var(--gris-borde); border-radius: 6px; font-size: 14px; }
+  input, textarea, select { width: 100%; padding: 8px; border: 1px solid var(--gris-borde); border-radius: 6px; font-size: 14px; box-sizing: border-box; }
   .btn { background: var(--negro); color: #fff; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
   .btn:hover { background: var(--dorado); }
   .btn-danger { background: #c0392b; }
@@ -25,6 +25,11 @@
   .info-box { margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 6px; border-left: 4px solid #007bff; font-size: 14px; }
   .info-box code { background: #fff; padding: 3px 8px; border-radius: 3px; font-size: 13px; }
   #upload-result { margin-top: 15px; }
+  .category-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; background: #e0e0e0; color: #333; margin-left: 5px; }
+  .category-badge.anillo { background: #ffe0b2; color: #e65100; }
+  .category-badge.collares { background: #b3e5fc; color: #01579b; }
+  .category-badge.aros { background: #f8bbd0; color: #880e4f; }
+  .category-badge.pulseras { background: #c8e6c9; color: #1b5e20; }
 </style>
 </head>
 <body>
@@ -44,6 +49,7 @@
 
   <div class="admin-wrap">
 
+    <!-- FORMULARIO DE PRODUCTO ACTUALIZADO -->
     <div class="box">
       <h2>Agregar producto</h2>
       <form id="product-form">
@@ -52,6 +58,27 @@
           <div><label>Precio</label><input type="number" id="p-price" required></div>
           <div><label>Stock</label><input type="number" id="p-stock" value="999"></div>
         </div>
+        
+        <!-- NUEVOS CAMPOS: Categoría y Talles -->
+        <div class="form-row">
+          <div>
+            <label>Categoría</label>
+            <select id="p-category" onchange="toggleSizesInput()">
+              <option value="general">General</option>
+              <option value="anillo">💍 Anillo</option>
+              <option value="collar"> Collar</option>
+              <option value="aro">✨ Aro/Pendiente</option>
+              <option value="pulsera"> Pulsera</option>
+            </select>
+          </div>
+          <div id="sizes-container" style="display:none">
+            <label>Talles disponibles (separados por coma)</label>
+            <input type="text" id="p-sizes" placeholder="Ej: 12, 13, 14, 15, 16, 17, 18">
+            <small style="color:#666; font-size:12px;"> Solo para anillos. Dejá vacío si no aplica.</small>
+          </div>
+        </div>
+        <!-- FIN NUEVOS CAMPOS -->
+        
         <div class="form-row">
           <div><label>Descripción (opcional)</label><textarea id="p-desc" rows="2"></textarea></div>
         </div>
@@ -83,9 +110,9 @@
       </table>
     </div>
 
-    <!-- NUEVA SECCIÓN: Actualizar Precios con Excel -->
+    <!-- SECCIÓN: Actualizar Precios con Excel -->
     <div class="box">
-      <h2> Actualizar Precios Masivamente</h2>
+      <h2>📊 Actualizar Precios Masivamente</h2>
       <p style="color: #666; margin-bottom: 15px; font-size: 14px;">
         Subí un archivo Excel (.xlsx) para actualizar los precios de varios productos a la vez.
       </p>
@@ -110,11 +137,10 @@
           Ejemplo: <code>ARO001</code> | <code>Aros dorados</code> | <code>5500</code>
         </p>
         <p style="margin: 10px 0 0 0; color: #666; font-size: 13px;">
-          ⚠️ El precio debe ser solo números (sin $ ni comas).
+          ️ El precio debe ser solo números (sin $ ni comas).
         </p>
       </div>
     </div>
-    <!-- FIN NUEVA SECCIÓN -->
 
     <div class="box">
       <h2>Últimas ventas</h2>
