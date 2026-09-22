@@ -290,12 +290,22 @@ app.post('/api/admin/update-prices', requireAdmin, uploadLocal.single('file'), a
         let notFoundCount = 0;
         const errors = [];
 
-        // 2. Recorrer cada fila del Excel
+        // 2. Recorrer cada fila del Excel (BÚSQUEDA MEJORADA)
         for (const row of data) {
-            // Busca por 'sku' o por 'name' (ajusta si tus campos se llaman diferente en tu modelo)
-            const searchCriteria = row.sku ? { sku: row.sku } : { name: row.nombre };
+            let product = null;
             
-            const product = await Product.findOne(searchCriteria);
+            // Si tiene SKU, busca por SKU exacto
+            if (row.sku) {
+                product = await Product.findOne({ sku: row.sku });
+            }
+            
+            // Si no tiene SKU o no lo encontró, busca por nombre (ignorando mayúsculas y espacios)
+            if (!product && row.nombre) {
+                const nombreLimpio = String(row.nombre).trim();
+                product = await Product.findOne({ 
+                    name: { $regex: `^${nombreLimpio}$`, $options: 'i' } 
+                });
+            }
             
             if (product && row.precio) {
                 product.price = Number(row.precio); // Aseguramos que sea número
